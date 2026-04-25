@@ -82,3 +82,17 @@ func stripQuotes(s string) string {
 	}
 	return s
 }
+
+// Lookup returns the value for the given key and whether it was present.
+// This mirrors the semantics of os.LookupEnv for convenience.
+func (m EnvMap) Lookup(key string) (string, bool) {
+	v, ok := m[key]
+	return v, ok
+}
+
+// Merge combines the entries of other into m, overwriting any existing keys.
+func (m EnvMap) Merge(other EnvMap) {
+	for k, v := range other {
+		m[k] = v
+	}
+}
