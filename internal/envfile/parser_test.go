@@ -81,3 +81,14 @@ func TestParse_MissingFile(t *testing.T) {
 		t.Fatal("expected error for missing file, got nil")
 	}
 }
+
+func TestParse_EmptyFile(t *testing.T) {
+	path := writeTempEnv(t, "")
+	env, err := Parse(path)
+	if err != nil {
+		t.Fatalf("unexpected error for empty file: %v", err)
+	}
+	if len(env) != 0 {
+		t.Errorf("expected empty map, got %v", env)
+	}
+}
