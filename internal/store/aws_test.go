@@ -70,6 +70,14 @@ func TestAWSStore_Delete(t *testing.T) {
 	}
 }
 
+func TestAWSStore_DeleteMissingKey(t *testing.T) {
+	s, _ := NewAWSStore("/app/prod", nil)
+	err := s.Delete("NONEXISTENT")
+	if err == nil {
+		t.Fatal("expected error when deleting a key that does not exist")
+	}
+}
+
 func TestAWSStore_ToMap(t *testing.T) {
 	initial := map[string]string{
 		"/ns/A": "1",
