@@ -3,47 +3,39 @@ package cmd
 import (
 	"fmt"
 	"io"
+	"os"
 
-	"envoy-sync/internal/diff"
-	"envoy-sync/internal/envfile"
-	"envoy-sync/internal/store"
+	"github.com/yourusername/envoy-sync/internal/diff"
+	"github.com/yourusername/envoy-sync/internal/envfile"
+	"github.com/yourusername/envoy-sync/internal/store"
 )
 
-// GitLabDiffOptions holds parameters for the gitlab-diff command.
-type GitLabDiffOptions struct {
-	LocalFile string
-	Namespace string
-	RemoteVars map[string]string // injected in tests; represents remote GitLab state
-	Format     string            // "text" or "summary"
-	Verbose    bool
-}
-
-// RunGitLabDiff compares a local .env file against a simulated GitLab variable store
-// and writes the diff result to out.
-func RunGitLabDiff(opts GitLabDiffOptions, out io.Writer) error {
-	if opts.LocalFile == "" {
-		return fmt.Errorf("gitlab-diff: local file path must not be empty")
-	}
-	if opts.Namespace == "" {
-		return fmt.Errorf("gitlab-diff: namespace must not be empty")
+// RunGitLabDiff compares a local .env file against a GitLab CI/CD variable namespace.
+func RunGitLabDiff(localPath, namespace string, summary bool, w io.Writer) error {
+	if w == nil {
+		w = os.Stdout
 	}
 
-	localVars, err := envfile.Parse(opts.LocalFile)
+	if namespace == "" {
+		return fmt.Errorf("namespace must not be empty")
+	}
+
+	localVars, err := envfile.Parse(localPath)
 	if err != nil {
-		return fmt.Errorf("gitlab-diff: parse local file: %w", err)
+		return fmt.Errorf("failed to parse local file %q: %w", localPath, err)
 	}
 
-	remote := store.NewGitLabStore(opts.Namespace, opts.RemoteVars)
-	remoteMap := remote.All()
+	glStore := store.NewGitLabStore(localVars, namespace)
+	remoteVars := store.ToMap(glStore)
 
-	result := diff.Compare(localVars, remoteMap)
+	changes := diff.Compare(localVars, remoteVars)
 
-	switch opts.Format {
-	case "summary":
-		summary := diff.Summarize(result)
-		_, err = fmt.Fprintln(out, summary.String())
-	default:
-		err = diff.Fprint(out, result, opts.Verbose)
+	if summary {
+		rep := diff.Summarize(changes)
+		_, err = fmt.Fprintln(w, rep.String())
+		return err
 	}
-	return err
+
+	diff.Fprint(w, changes, false)
+	return nil
 }
