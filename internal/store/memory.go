@@ -67,3 +67,8 @@ func (s *Store) Merge(other *Store) *Store {
 	name := fmt.Sprintf("%s+%s", s.Name, other.Name)
 	return New(name, merged)
 }
+
+// Clone returns a deep copy of the store with the same name and variables.
+func (s *Store) Clone() *Store {
+	return New(s.Name, s.Vars)
+}
